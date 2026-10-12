@@ -24,20 +24,32 @@ from hr_agent.policy import PolicySource, PolicyUnavailableError
 _policy_source = PolicySource()
 
 
-@tool
-def get_hr_policy_document() -> str:
-    """Read the company HR policy document.
+def make_policy_tool(source: PolicySource):
+    """Build the policy tool over a given reader.
 
-    Returns the full text of the UK accountancy firm's Employee Handbook and HR
-    Policy, covering recruitment, leave entitlement, conduct, and procedures.
-    Call this before answering any question about company policy.
+    A closure rather than a module-level tool so evals can inject a different
+    document — including a poisoned one — without touching global state.
     """
-    try:
-        return _policy_source.read()
-    except PolicyUnavailableError as exc:
-        # Returned to the model rather than raised, so it tells the user it
-        # cannot see the policy instead of falling back on general knowledge.
-        return f"ERROR: the HR policy document could not be read. {exc}"
+
+    @tool
+    def get_hr_policy_document() -> str:
+        """Read the company HR policy document.
+
+        Returns the full text of the UK accountancy firm's Employee Handbook and
+        HR Policy, covering recruitment, leave entitlement, conduct, and
+        procedures. Call this before answering any question about company policy.
+        """
+        try:
+            return source.read()
+        except PolicyUnavailableError as exc:
+            # Returned to the model rather than raised, so it tells the user it
+            # cannot see the policy instead of using general knowledge.
+            return f"ERROR: the HR policy document could not be read. {exc}"
+
+    return get_hr_policy_document
+
+
+get_hr_policy_document = make_policy_tool(_policy_source)
 
 
 @dataclass
@@ -60,6 +72,7 @@ class HRPolicyAgent:
         model: str | None = None,
         prompt_variant: str | None = None,
         temperature: float | None = None,
+        policy_source: PolicySource | None = None,
     ) -> None:
         if not config.OPENAI_API_KEY:
             raise RuntimeError("OPENAI_API_KEY is not set (expected in .env).")
@@ -73,7 +86,11 @@ class HRPolicyAgent:
 
         self.agent = create_agent(
             llm,
-            tools=[get_hr_policy_document],
+            tools=[
+                get_hr_policy_document
+                if policy_source is None
+                else make_policy_tool(policy_source)
+            ],
             system_prompt=config.system_prompt(prompt_variant),
             # Conversation memory, keyed by thread_id below.
             checkpointer=InMemorySaver(),

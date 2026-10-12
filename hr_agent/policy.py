@@ -88,8 +88,13 @@ def _fetch_from_google(document_id: str) -> str:
 class PolicySource:
     """Caching reader for the HR policy document."""
 
-    def __init__(self, ttl_seconds: int | None = None) -> None:
+    def __init__(
+        self, ttl_seconds: int | None = None, path: str | Path | None = None
+    ) -> None:
         self._ttl = config.DOC_CACHE_SECONDS if ttl_seconds is None else ttl_seconds
+        # An explicit path overrides HR_POLICY_FILE and Google Docs. Used by
+        # evals to serve a known — or deliberately poisoned — document.
+        self._path = Path(path) if path else None
         self._lock = threading.Lock()
         self._text: str | None = None
         self._fetched_at = 0.0
@@ -102,11 +107,11 @@ class PolicySource:
             if not force and self._is_fresh():
                 return self._text  # type: ignore[return-value]
 
-            if config.HR_POLICY_FILE:
-                path = Path(config.HR_POLICY_FILE)
+            if self._path or config.HR_POLICY_FILE:
+                path = self._path or Path(config.HR_POLICY_FILE)
                 if not path.exists():
                     raise PolicyUnavailableError(
-                        f"HR_POLICY_FILE is set to {path}, which does not exist."
+                        f"Policy file {path} does not exist."
                     )
                 text = path.read_text(encoding="utf-8").strip()
             else:

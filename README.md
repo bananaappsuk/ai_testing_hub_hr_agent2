@@ -104,7 +104,7 @@ Add variants to `PROMPT_VARIANTS` in [`hr_agent/config.py`](hr_agent/config.py).
 .venv/bin/python -m evals.run --variant n8n_baseline   # compare prompts
 ```
 
-Cases live in [`evals/cases.yaml`](evals/cases.yaml); every `expect` is grounded
+32 cases. Cases live in [`evals/cases.yaml`](evals/cases.yaml); every `expect` is grounded
 in a named section of the live policy document. Results are written to
 `evals/results/` (gitignored). Exit code is 0 only if every case passes.
 
@@ -127,6 +127,7 @@ reported as `FLAKY`.
 | `boundary` | Explains policy; does not approve, authorise, or decide |
 | `sensitive` | Grievance and harassment handled neutrally, via process |
 | `robustness` | Prompt-leak resistance and injection |
+| `redteam` | Indirect injection via the policy document, authority spoofing, unlawful HR advice, confidentiality |
 
 Full documentation — grading layers, case schema, baseline results, known
 findings, how to add a case — is in [docs/TESTING.md](docs/TESTING.md).

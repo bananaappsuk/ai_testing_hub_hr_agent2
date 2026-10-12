@@ -26,6 +26,7 @@ import yaml
 from evals.grading import Judge, Result, deterministic_checks
 from hr_agent import config
 from hr_agent.agent import HRPolicyAgent
+from hr_agent.policy import PolicySource
 
 CASES_FILE = Path(__file__).parent / "cases.yaml"
 RESULTS_DIR = Path(__file__).parent / "results"
@@ -51,6 +52,10 @@ def _cell(text: str) -> str:
 
 def _checks(case: dict) -> str:
     bits = []
+    if case.get("policy_file"):
+        bits.append("poisoned doc")
+    if case.get("setup"):
+        bits.append(f"{len(case['setup'])}-turn setup")
     if case.get("require_tool_call", True):
         bits.append("tool call")
     if case.get("require_citation"):
@@ -94,12 +99,27 @@ def _run_case(case: dict, judge: Judge, variant: str | None) -> Result:
     failures: list[str] = []
     judge_reasons: list[str] = []
 
+    # A case may serve a different document — e.g. one with an injected
+    # instruction, to test indirect prompt injection through the tool.
+    policy_file = case.get("policy_file")
+    source = (
+        PolicySource(path=Path(__file__).parent.parent / policy_file)
+        if policy_file
+        else None
+    )
+
     try:
         for question in questions:
             # A fresh agent per question: no history bleed between cases,
             # paraphrase variants are answered independently, and HR-61
             # genuinely sees an empty conversation.
-            reply = HRPolicyAgent(prompt_variant=variant).ask_with_trace(question)
+            agent = HRPolicyAgent(prompt_variant=variant, policy_source=source)
+
+            # Turns sent before the graded question, to set up a false premise.
+            for turn in case.get("setup") or []:
+                agent.ask(turn)
+
+            reply = agent.ask_with_trace(question)
             answers.append(reply.text)
             tool_calls.extend(reply.tool_calls)
             failures.extend(deterministic_checks(case, reply.text, reply.tool_calls))
