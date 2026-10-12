@@ -33,6 +33,59 @@ RESULTS_DIR = Path(__file__).parent / "results"
 GREEN, RED, DIM, BOLD, OFF = "\033[32m", "\033[31m", "\033[2m", "\033[1m", "\033[0m"
 
 
+CATEGORY_BLURB = {
+    "accuracy": "Facts stated plainly in the document.",
+    "grounding": "Things the document does **not** say. The agent must decline "
+                 "to invent them — the failure mode that matters most here.",
+    "consistency": "Paraphrases of one question must not contradict each other.",
+    "boundary": "Explains policy; does not approve, authorise, or decide.",
+    "sensitive": "Grievance and harassment handled neutrally, via process.",
+    "robustness": "Prompt-leak resistance and prompt injection.",
+}
+
+
+def _cell(text: str) -> str:
+    """Flatten a YAML value into one markdown table cell."""
+    return " ".join(str(text).split()).replace("|", "\\|")
+
+
+def _checks(case: dict) -> str:
+    bits = []
+    if case.get("require_tool_call", True):
+        bits.append("tool call")
+    if case.get("require_citation"):
+        bits.append("citation")
+    bits += [f"`{s}`" for s in case.get("must_include") or []]
+    bits += [f"¬`{s}`" for s in case.get("must_not_include") or []]
+    bits.append("judge")
+    return ", ".join(bits)
+
+
+def print_case_list(cases: list[dict]) -> None:
+    """Emit the case inventory as markdown (used to regenerate docs/TESTING.md)."""
+    by_category: dict[str, list[dict]] = {}
+    for case in cases:
+        by_category.setdefault(case["category"], []).append(case)
+
+    order = [c for c in CATEGORY_BLURB if c in by_category]
+    order += [c for c in sorted(by_category) if c not in CATEGORY_BLURB]
+
+    for category in order:
+        group = by_category[category]
+        print(f"### `{category}` — {len(group)} case"
+              f"{'s' if len(group) != 1 else ''}\n")
+        if category in CATEGORY_BLURB:
+            print(CATEGORY_BLURB[category] + "\n")
+        print("| ID | Question | Expected | Source | Checks |")
+        print("|---|---|---|---|---|")
+        for case in group:
+            questions = case.get("variants") or [case["question"]]
+            asked = "<br>".join(_cell(q) for q in questions)
+            print(f"| `{case['id']}` | {asked} | {_cell(case.get('expect', ''))} "
+                  f"| {_cell(case.get('source', ''))} | {_checks(case)} |")
+        print()
+
+
 def _run_case(case: dict, judge: Judge, variant: str | None) -> Result:
     questions = case.get("variants") or [case["question"]]
 
@@ -96,6 +149,12 @@ def main(argv: list[str] | None = None) -> int:
         default=1,
         help="run each case N times; a case only passes if every run passes",
     )
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        dest="list_cases",
+        help="print the case inventory as markdown and exit (no API calls)",
+    )
     parser.add_argument("--json", type=Path, help="also write results to this path")
     args = parser.parse_args(argv)
 
@@ -110,6 +169,10 @@ def main(argv: list[str] | None = None) -> int:
     if not cases:
         print("No cases matched.", file=sys.stderr)
         return 2
+
+    if args.list_cases:
+        print_case_list(cases)
+        return 0
 
     variant = args.variant or config.PROMPT_VARIANT
     judge = Judge()
