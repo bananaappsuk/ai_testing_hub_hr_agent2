@@ -1,0 +1,15 @@
+# Agent
+langchain>=1.4,<2
+langchain-openai>=1.7,<2
+python-dotenv>=1.0
+
+# Policy document (Google Docs, service account auth)
+google-api-python-client>=2.100
+google-auth>=2.23
+
+# Browser UI
+flask>=3.0
+
+# Evals — imported directly, though langchain also pulls them in
+PyYAML>=6.0
+pydantic>=2.0

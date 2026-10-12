@@ -1,0 +1,199 @@
+{
+  "name": "HR policy agent",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -176,
+        80
+      ],
+      "id": "aed0fbad-5ef3-4fdc-bed1-6387de3eb1da",
+      "name": "When chat message received",
+      "webhookId": "90790d2a-3c40-4cf3-9499-0d37eb7f8cbc"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a HR manager for a accountancy company based in UK. Please use the HR policy document for employee leave entititlement information and HR policies"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        48,
+        -32
+      ],
+      "id": "8d361dda-9252-4812-9ec8-0e2820b3f9b3",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        64,
+        208
+      ],
+      "id": "d889fdf1-60fb-49c9-bb56-1ac9581a2a0e",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "tgqEGELJD6q2L40a",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "This is the HR policy document",
+        "operation": "get",
+        "documentURL": "https://docs.google.com/document/d/13Cp8y7uEapWBhrMW8AWa79aGek20MCtZchGZBW0_8ks/edit?tab=t.0#heading=h.8xbgud918ec1"
+      },
+      "type": "n8n-nodes-base.googleDocsTool",
+      "typeVersion": 2,
+      "position": [
+        192,
+        208
+      ],
+      "id": "1974ebb8-1d29-45b2-86de-00854938a1ee",
+      "name": "Get a document in Google Docs",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "wtUFSYKmMDZrZnAX",
+          "name": "sriram-new-google"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "setMetrics",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.evaluation",
+      "typeVersion": 4.8,
+      "position": [
+        -176,
+        400
+      ],
+      "id": "3d3eb939-6500-4869-bd8a-c7263be8990a",
+      "name": "Evaluation"
+    },
+    {
+      "parameters": {
+        "operation": "setInputs"
+      },
+      "type": "n8n-nodes-base.evaluation",
+      "typeVersion": 4.8,
+      "position": [
+        176,
+        400
+      ],
+      "id": "7b64ebba-5769-44f9-b89c-2abe8422cc49",
+      "name": "Evaluation1"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        400
+      ],
+      "id": "774ecbf8-b7fc-4896-a566-ee9334c71a7a",
+      "name": "Get row(s)"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a document in Google Docs": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluation": {
+      "main": [
+        [
+          {
+            "node": "Evaluation1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluation1": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "b4111dae-b632-4f97-a20c-5ddae94e002b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a2b1b23cb0b8cb8bc4f6ca10549a8c55fc98d53e3be21a916ea7564e895e13bf"
+  },
+  "nodeGroups": [],
+  "id": "6v9TyAuFGpwin3k1",
+  "tags": []
+}

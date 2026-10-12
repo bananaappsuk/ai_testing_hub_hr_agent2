@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+credentials.json
+token.json
+gen-lang-client-*.json
+service_account.json
+evals/results/
