@@ -58,6 +58,8 @@ class AgentReply:
 
     text: str
     tool_calls: list[str] = field(default_factory=list)
+    # What the tools returned — the retrieved context, for eval metrics.
+    tool_outputs: list[str] = field(default_factory=list)
 
     def __str__(self) -> str:
         return self.text
@@ -118,6 +120,12 @@ class HRPolicyAgent:
             for call in (getattr(message, "tool_calls", None) or [])
         ]
 
+        tool_outputs = [
+            str(m.content)
+            for m in messages
+            if getattr(m, "type", None) == "tool"
+        ]
+
         last = messages[-1]
         text = getattr(last, "text", None)
         # langchain-core 1.x returns a TextAccessor (a str subclass that is also
@@ -129,4 +137,6 @@ class HRPolicyAgent:
         else:
             text = last.content
 
-        return AgentReply(text=text or "", tool_calls=tool_calls)
+        return AgentReply(
+            text=text or "", tool_calls=tool_calls, tool_outputs=tool_outputs
+        )
